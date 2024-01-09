@@ -5,14 +5,15 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/flosch/pongo2/v6"
 )
 
-type templates map[string]*pongo2.template
+type Templates map[string]*pongo2.Template
 
 // for now we dont error
-func (views templates) add(name string, template *pongo2.template) {
+func (views Templates) Add(name string, template *pongo2.Template) {
 
 	if name == "" {
 		return
@@ -25,52 +26,42 @@ func (views templates) add(name string, template *pongo2.template) {
 	views[name] = template
 }
 
-func (views templates) render(name string, w io.writer, c pongo2.context) error {
+func (views Templates) Render(name string, w io.Writer, c pongo2.Context) error {
 
 	if _, ok := views[name]; !ok {
-		return fmt.errorf("template %s not found", name)
+		return fmt.Errorf("template %s not found", name)
 	}
 
-	return views[name].executewriter(c, w)
+	return views[name].ExecuteWriter(c, w)
 }
 
-func (views templates) dbg() {
+func (views Templates) Dbg() {
 
 	for k := range views {
-		fmt.printf("template=%s\n", k)
+		fmt.Printf("template=%s\n", k)
 	}
 }
 
-func loadtemplates(dirpath string) *templates {
-	templs := make(templates)
+func LoadTemplates(dirpath string) *Templates {
+	templs := make(Templates)
 
-	err := filepath.walk(dirpath, func(path string, info os.fileinfo, err error) error {
+	err := filepath.Walk(dirpath, func(path string, info os.FileInfo, err error) error {
 
-        fmt.printf("path=%s, isDir=%t", path, info.isdir())
+		fmt.Printf("path=%s, isdir=%t\n", path, info.IsDir())
 		if err != nil {
-			fmt.println(err)
+			fmt.Println(err)
 			return err
 		}
 
-		if info.isdir() {
+		if info.IsDir() {
 			return nil
 		}
 
-		parent := filepath.base(filepath.dir(path))
+		np := strings.Replace(path, dirpath+"/", "", 1)
 
-		if parent == dirpath || parent == "layout" {
-			return nil
-		}
+		templ := pongo2.Must(pongo2.FromFile(path))
 
-		filename := filepath.base(path)
-
-		name := filename[:len(filename)-len(filepath.ext(filename))]
-
-		tname := parent + "_" + name
-
-		templ := pongo2.must(pongo2.fromfile(path))
-
-		templs.add(tname, templ)
+		templs.Add(np, templ)
 
 		return nil
 	})
