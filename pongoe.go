@@ -47,7 +47,6 @@ func LoadTemplates(dirpath string) *Templates {
 
 	err := filepath.Walk(dirpath, func(path string, info os.FileInfo, err error) error {
 
-		fmt.Printf("path=%s, isdir=%t\n", path, info.IsDir())
 		if err != nil {
 			fmt.Println(err)
 			return err
