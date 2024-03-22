@@ -3,6 +3,8 @@ package pongoe
 import (
 	"fmt"
 	"io"
+	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,6 +42,39 @@ func (views Templates) Dbg() {
 	for k := range views {
 		fmt.Printf("template=%s\n", k)
 	}
+}
+
+func LoadTemplatesFS(dir fs.FS) *Templates {
+	fmt.Println("LoadTemplatesFS")
+	templs := make(Templates)
+
+	ts := pongo2.NewSet("main", pongo2.NewFSLoader(dir))
+
+	err := fs.WalkDir(dir, ".", func(path string, info fs.DirEntry, err error) error {
+
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		np := strings.Replace(path, "./", "", 1)
+
+		templ := pongo2.Must(ts.FromFile(path))
+
+		templs.Add(np, templ)
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &templs
 }
 
 func LoadTemplates(dirpath string) *Templates {
